@@ -1,0 +1,17 @@
+name: azure-ml-llm-trainer
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      # PyTorch — latest stable release for Python 3.12 (CUDA or CPU picked automatically by pip)
+      - torch==2.5.1
+      # HuggingFace ecosystem
+      - transformers==4.46.3
+      - datasets==3.1.0
+      - accelerate==1.0.1
+      - peft==0.13.2
+      - trl==0.12.1
