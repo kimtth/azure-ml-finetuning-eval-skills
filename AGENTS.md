@@ -20,3 +20,14 @@ azure-ml-model-evaluation: `Evaluate generative AI applications and models local
 Paths referenced within SKILL folders are relative to that SKILL. For example the azure-ml-llm-trainer sample/src/train_sft.py would be referenced as `sample/src/train_sft.py`.
 
 </skills>
+
+<documentation_rules>
+
+**CRITICAL: Do NOT generate verbose documentation**
+- Avoid creating markdown files at every step (no SUMMARY.md, ARCHITECTURE.md, QUICKSTART.md, etc.)
+- Keep documentation lean, concise, and minimal
+- Update existing README.md files only when necessary
+- Let code examples demonstrate functionality instead of lengthy explanations
+- No redundant documentation across multiple files
+
+</documentation_rules>

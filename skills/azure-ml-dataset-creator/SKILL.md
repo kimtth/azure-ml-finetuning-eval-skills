@@ -22,7 +22,7 @@ Generate synthetic datasets using Azure AI Foundry simulators for evaluation and
 ## Prerequisites
 
 - Azure AI Foundry **hub-based project** (not Foundry)
-- Azure OpenAI deployment (GPT-4o-mini recommended for cost)
+- Azure OpenAI deployment (GPT-5-mini recommended for cost)
 - Packages: `azure-ai-evaluation`, `azure-identity`
 - For adversarial: Project in East US 2, France Central, UK South, or Sweden Central
 
@@ -147,7 +147,7 @@ Target application must be defined as async callback accepting messages dict and
 ## Notes
 
 - **Synthetic data validation**: Always review generated samples before production use
-- **Token costs**: Monitor Azure OpenAI quota; use GPT-4o-mini for cost efficiency
+- **Token costs**: Monitor Azure OpenAI quota; use GPT-5-mini for cost efficiency
 - **Context limits**: Keep text inputs under 5,000 characters for optimal results
 - **Reproducibility**: Set `randomization_seed` for consistent results across runs
 - **Regional availability**: Adversarial simulators require supported regions (see Prerequisites)

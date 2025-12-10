@@ -1,8 +1,6 @@
 # Azure ML Fine-Tuning & Evaluation Skills
 
-Complete toolkit for Azure Machine Learning LLM workflows: training, data generation, and evaluation.
-
-This repository is intended for use with GitHub Copilot in Visual Studio Code. You can specify the `skills` directories and files named `AGENTS.md` to provide context for Copilot-managed coding models.
+This repository is intended for use with GitHub Copilot in Visual Studio Code. You can specify the `skills` directories and files named `AGENTS.md` to provide context for Copilot-managed coding models. `experimental`
 
 ## Skills Overview
 
@@ -40,7 +38,7 @@ export AZURE_SUBSCRIPTION_ID="<your-subscription-id>"
 export AZURE_RESOURCE_GROUP="<your-resource-group>"
 export AZUREML_WORKSPACE_NAME="<your-workspace>"
 export AZURE_OPENAI_ENDPOINT="<your-endpoint>"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"
+export AZURE_OPENAI_DEPLOYMENT="gpt-5-mini"
 export AZURE_OPENAI_API_VERSION="2024-08-01-preview"
 
 # Login to Azure
@@ -68,6 +66,21 @@ az login
    from azure.ai.evaluation import evaluate
    result = evaluate(data="test.jsonl", evaluators={"groundedness": eval})
    ```
+
+## End-to-End Comparative Example: With Skills vs. Without Skills
+
+- `e2e_test_w_skill`: Generated e2e workflow **with skills** and AGENTS.md
+- `e2e_test_wo_skill`: Generated e2e workflow **without skills** and AGENTS.md
+- Generate customer support Q&A dataset (80 samples)
+- Fine-tune Phi-4-mini on Azure ML GPU compute
+- Evaluate with quality metrics (relevance, coherence, F1)
+- Inquiry: `Can you generate a synthetic dataset of customer-support conversations, fine-tune a Phi-4-mini model (or any small model that supports fine-tuning) to answer support questions, and then evaluate the model’s accuracy on a test set?`
+
+**Run it:**
+```bash
+cd e2e_test_w_skill
+python run_e2e_workflow.py --compute gpu-cluster
+```
 
 ## Key Features
 

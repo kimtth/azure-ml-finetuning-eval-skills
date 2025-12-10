@@ -17,7 +17,7 @@ from utils import get_azure_openai_token_provider
 # Configuration
 model_config = {
     "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
-    "azure_deployment": os.environ["AZURE_OPENAI_DEPLOYMENT"],  # e.g., gpt-4o-mini
+    "azure_deployment": os.environ["AZURE_OPENAI_DEPLOYMENT"],
     "api_version": os.environ["AZURE_OPENAI_API_VERSION"],
 }
 
