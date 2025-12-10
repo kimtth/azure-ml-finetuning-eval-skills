@@ -205,7 +205,7 @@ View results in Azure AI Foundry: Navigate to **Evaluation → Evaluation runs**
 
 ## Notes
 
-- **Model selection**: Use GPT-4o-mini for cost-effective evaluation
+- **Model selection**: Use GPT-5-mini for cost-effective evaluation
 - **Batch size**: Evaluate 100-500 samples for statistical significance
 - **Data quality**: Validate JSONL format and column mappings
 - **Token usage**: Monitor Azure OpenAI quota—evaluators consume 800-3000 tokens each

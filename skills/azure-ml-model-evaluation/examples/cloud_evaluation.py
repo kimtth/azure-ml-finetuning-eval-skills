@@ -24,7 +24,7 @@ from utils import create_sample_test_data
 PROJECT_ENDPOINT = os.environ["PROJECT_ENDPOINT"]  # https://<account>.services.ai.azure.com/api/projects/<project>
 MODEL_ENDPOINT = os.environ["MODEL_ENDPOINT"]  # https://<account>.services.ai.azure.com
 MODEL_API_KEY = os.environ["MODEL_API_KEY"]
-MODEL_DEPLOYMENT_NAME = os.environ["MODEL_DEPLOYMENT_NAME"]  # e.g., gpt-4o-mini
+MODEL_DEPLOYMENT_NAME = os.environ["MODEL_DEPLOYMENT_NAME"]
 
 DATASET_NAME = os.environ.get("DATASET_NAME", "eval-dataset-test")
 DATASET_VERSION = os.environ.get("DATASET_VERSION", "1.0")
