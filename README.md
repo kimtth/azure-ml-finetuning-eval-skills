@@ -1,86 +1,116 @@
-# Azure ML LLM Fine-Tuning Skill
+# Azure ML Fine-Tuning & Evaluation Skills
 
-Direct training of LLMs on Azure ML managed compute using TRL (Transformer Reinforcement Learning) trainers—an alternative to serverless APIs with full control over hyperparameters and training loops.
+Complete toolkit for Azure Machine Learning LLM workflows: training, data generation, and evaluation.
 
-This repository is intended for use with GitHub Copilot in Visual Studio Code. You can specify the `samples` and `skills` directories, as well as files named `AGENTS.md`, to provide context for Copilot-managed coding models.
+This repository is intended for use with GitHub Copilot in Visual Studio Code. You can specify the `skills` directories and files named `AGENTS.md` to provide context for Copilot-managed coding models.
 
-## Overview
+## Skills Overview
 
-Azure AI Foundry offers **four ways to fine-tune**:
-1. **Serverless API (Foundry models)**: Managed Phi, Mistral via `create_finetuning_job()`; no compute setup
-2. **Managed Compute (Portal UI)**: Web UI–driven fine-tuning with auto-provisioned GPU; limited SDK
-3. **OpenAI API**: Azure OpenAI endpoint with GPT-4o, GPT-4 Turbo using OpenAI SDK
-4. **Direct Training (This Skill)**: Run TRL trainers on your own Azure ML compute for full transparency and control
+This repository provides three complementary skills for end-to-end LLM development:
+
+### 1. **azure-ml-llm-trainer** — Fine-tune LLMs on Azure ML
+Direct training of LLMs using TRL (Transformer Reinforcement Learning) trainers on Azure ML managed compute—an alternative to serverless APIs with full control over hyperparameters and training loops.
+
+**Methods**: SFT, DPO, RL/PPO  
+**Use Cases**: Custom fine-tuning, RLHF workflows, experimental training
+
+### 2. **azure-ml-dataset-creator** — Generate Synthetic Datasets
+Generate synthetic and simulated datasets using Azure AI Foundry simulators for evaluation and fine-tuning when production data is unavailable.
+
+**Capabilities**: Q&A generation, conversation simulation, adversarial safety data  
+**Use Cases**: Training data creation, RAG evaluation, safety red-teaming
+
+### 3. **azure-ml-model-evaluation** — Evaluate AI Models
+Evaluate generative AI applications locally or in the cloud with built-in quality and safety metrics using Azure AI Evaluation SDK.
+
+**Metrics**: Relevance, groundedness, coherence, safety, NLP scores  
+**Use Cases**: Model comparison, CI/CD quality gates, production monitoring
 
 ## Quick Start
 
-1. **Set up Azure credentials:**
-   ```bash
-   az login
-   export AZURE_SUBSCRIPTION_ID=<your-subscription>
-   export AZURE_RESOURCE_GROUP=<your-resource-group>
-   export AZUREML_WORKSPACE_NAME=<your-workspace>
+### Prerequisites
+
+```bash
+# Install required packages
+pip install azure-ai-evaluation azure-ai-projects azure-identity
+pip install azure-ai-ml promptflow-azure
+
+# Set environment variables
+export AZURE_SUBSCRIPTION_ID="<your-subscription-id>"
+export AZURE_RESOURCE_GROUP="<your-resource-group>"
+export AZUREML_WORKSPACE_NAME="<your-workspace>"
+export AZURE_OPENAI_ENDPOINT="<your-endpoint>"
+export AZURE_OPENAI_DEPLOYMENT="gpt-4o-mini"
+export AZURE_OPENAI_API_VERSION="2024-08-01-preview"
+
+# Login to Azure
+az login
+```
+
+### Typical Workflow
+
+1. **Generate Training Data** (azure-ml-dataset-creator)
+   ```python
+   from azure.ai.evaluation.simulator import Simulator
+   outputs = await simulator(target=callback, text=docs, num_queries=100)
    ```
 
-2. **Prepare dataset** in JSONL format and upload to Azure ML datastore.
-
-3. **Submit training job:**
+2. **Fine-Tune Model** (azure-ml-llm-trainer)
    ```bash
-   python sample/submit_sft_job.py \
-     --compute <gpu-cluster> \
-     --data-path azureml://<datastore>/dataset.jsonl \
+   python skills/azure-ml-llm-trainer/sample/submit_sft_job.py \
+     --compute gpu-cluster \
+     --data-path azureml://datastores/workspaceblobstore/paths/data.jsonl \
      --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1
    ```
 
-4. **Monitor** via Azure ML Studio link in output.
-
-## Training Methods
-
-- **SFT** (Supervised Fine-Tuning): `sample/submit_sft_job.py` + `sample/src/train_sft.py`
-  - Format: `{"messages": [{"role": "...", "content": "..."}, ...]}`
-- **DPO** (Direct Preference Optimization): `sample/submit_dpo_job.py` + `sample/src/train_dpo.py`
-  - Format: `{"prompt": "...", "chosen": "...", "rejected": "..."}`
-- **RL** (PPO-style): `sample/submit_rl_job.py` + `sample/src/train_rl.py`
-  - Format: `{"prompt": "...", "reward": 0.5}` (optional reward)
-
-## Files
-
-- `skills/azure-ml-llm-trainer/SKILL.md` — Skill documentation
-- `sample/submit_*.py` — Job submission scripts
-- `sample/src/train_*.py` — Training entry points
-- `sample/environment/conda.yml` — Dependencies
-- `.github/copilot-instructions.md` — Copilot guidelines
+3. **Evaluate Results** (azure-ml-model-evaluation)
+   ```python
+   from azure.ai.evaluation import evaluate
+   result = evaluate(data="test.jsonl", evaluators={"groundedness": eval})
+   ```
 
 ## Key Features
 
-- **Direct Trainer Control**: Use TRL SFTTrainer, DPOTrainer, PPOTrainer with full visibility  
-- **No Serverless Lock-in**: Run on your own Azure ML compute; full control over resources  
-- **Azure-Native**: Data and models stay in Azure ML datastores; no external downloads  
-- **Production-Ready**: Includes checkpointing, gradient accumulation, and distributed training support  
-- **Experimental**: Perfect for research, custom loss functions, and advanced training workflows  
+### Training (azure-ml-llm-trainer)
+- **Direct Trainer Control**: Use TRL SFTTrainer, DPOTrainer, PPOTrainer with full visibility
+- **No Serverless Lock-in**: Run on your own Azure ML compute; full control over resources
+- **Azure-Native**: Data and models stay in Azure ML datastores; no external downloads
+- **Production-Ready**: Checkpointing, gradient accumulation, distributed training support
+
+### Dataset Creation (azure-ml-dataset-creator)
+- **Non-Adversarial Simulation**: Generate Q&A and conversations from text/documents
+- **Adversarial Simulation**: Create safety evaluation datasets with jailbreak attacks
+- **Multi-Turn Support**: Simulate realistic multi-turn conversations
+- **Multi-Language**: Support for 8+ languages (EN, ES, FR, DE, JA, ZH, IT, PT)
+
+### Evaluation (azure-ml-model-evaluation)
+- **Quality Metrics**: Relevance, groundedness, coherence, fluency, retrieval
+- **Safety Metrics**: Violence, sexual content, hate speech, self-harm detection
+- **NLP Metrics**: F1, BLEU, ROUGE, METEOR, similarity scores
+- **Cloud & Local**: Run evaluations locally or at scale in Azure  
 
 ## References
 
-**Hugging face**
-- [We Got Claude to Fine-Tune an Open Source LLM](https://huggingface.co/blog/hf-skills-training): Inspired by this blog.
-- [Hugging Face Skills](https://github.com/huggingface/skills)
+### Official Documentation
+- [Azure AI Foundry Documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/)
+- [Azure AI Evaluation SDK](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/evaluate-sdk)
+- [Simulator Documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/simulator-interaction-data)
+- [Azure ML Python SDK](https://learn.microsoft.com/en-us/python/api/overview/azure/ml/)
 
-**Azure AI Foundry Fine-Tuning:**
-- [Serverless Fine-Tuning (Foundry Models)](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/fine-tune-serverless?view=foundry-classic&tabs=chat-completion&pivots=programming-language-python)
-- [Managed Compute (Portal UI)](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/fine-tune-managed-compute?view=foundry-classic)
-- [OpenAI Fine-Tuning (SFT, DPO, RL)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/fine-tuning?toc=%2Fazure%2Fai-foundry%2Ftoc.json&view=foundry-classic&pivots=programming-language-python)
-- [Direct Preference Optimization (DPO)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/fine-tuning-direct-preference-optimization?toc=%2Fazure%2Fai-foundry%2Ftoc.json&view=foundry-classic)
-- [Reinforcement Fine-Tuning (RFT/RL with Graders)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/reinforcement-fine-tuning?toc=%2Fazure%2Fai-foundry%2Ftoc.json&view=foundry-classic)
+### Fine-Tuning Methods
+- [Serverless Fine-Tuning (Foundry Models)](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/fine-tune-serverless)
+- [OpenAI Fine-Tuning (SFT, DPO, RL)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/fine-tuning)
+- [Direct Preference Optimization (DPO)](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/fine-tuning-direct-preference-optimization)
 
-**Libraries & Tools:**
-- [TRL Documentation](https://huggingface.co/docs/trl)
-- [Azure ML SDK](https://learn.microsoft.com/en-us/python/api/azure-ai-ml/)
-- [Azure AI Foundry Model Catalog](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/model-catalog)
-- [Azure Machine Learning examples](https://github.com/Azure/azureml-examples): Official community-driven Azure Machine Learning examples.
+### Related Resources
+- [TRL (Transformer Reinforcement Learning)](https://huggingface.co/docs/trl/)
+- [Azure AI Model Catalog](https://ai.azure.com/explore/models)
+- [Azure Machine Learning Examples](https://github.com/Azure/azureml-examples)
+- [Hugging Face Skills](https://github.com/huggingface/skills) (Inspiration)
 
 ## Notes
 
-- Use `az login` with credentials before submitting jobs.
-- GPU compute recommended (e.g., `Standard_NC24ads_A100_v4`).
-- Artifacts stored in job output folder; register as model for deployment.
-- For questions, refer to `AGENTS.md` and skill documentation under `skills/`.
+- Use `az login` before submitting jobs
+- GPU compute recommended for training (e.g., `Standard_NC24ads_A100_v4`)
+- Artifacts stored in job output folder; register as model for deployment
+- For detailed guidance, refer to `AGENTS.md` and skill documentation under `skills/`

@@ -1,0 +1,44 @@
+---
+name: QueryResponseGenerator
+description: Generates detailed query-response pairs from input text
+model:
+  api: chat
+  parameters:
+    temperature: 0.7
+    top_p: 0.95
+    max_tokens: 1000
+    response_format:
+        type: json_object
+
+inputs:
+  text:
+    type: string
+  num_queries:
+    type: integer
+    default: 5
+  task:
+    type: string
+
+---
+system:
+You are an expert at generating high-quality question-answer pairs from technical documentation.
+
+user:
+Generate {{ num_queries }} detailed question-answer pairs from the following text for this task: {{ task }}
+
+Text:
+{{ text }}
+
+Requirements:
+- Questions should be specific and answerable from the text
+- Answers should be comprehensive and cite relevant information
+- Cover different aspects: definitions, procedures, comparisons, troubleshooting
+- Output in JSON format with "query" and "response" fields
+
+Example output:
+{
+  "pairs": [
+    {"query": "What is...?", "response": "It is..."},
+    {"query": "How do I...?", "response": "You can..."}
+  ]
+}
