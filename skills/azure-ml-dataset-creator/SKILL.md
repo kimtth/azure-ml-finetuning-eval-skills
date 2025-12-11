@@ -26,72 +26,65 @@ Generate synthetic datasets using Azure AI Foundry simulators for evaluation and
 - Packages: `azure-ai-evaluation`, `azure-identity`
 - For adversarial: Project in East US 2, France Central, UK South, or Sweden Central
 
-## Files
+## Template Files
+These are **templates** in `examples/` directory. Copy and adapt them for your project:
 
 ```
 examples/
-  ├── generate_qa_from_text.py              # Q&A from Wikipedia/documents
-  ├── generate_conversation.py               # Multi-turn conversations
-  ├── generate_adversarial.py                # Safety evaluation datasets
-  ├── generate_jailbreak_attacks.py          # UPIA/XPIA attack simulation
-  ├── generate_with_custom_prompty.py        # Custom simulator behavior
-  ├── utils.py                               # Utility functions
+  ├── generate_qa_from_text.py              # Template: Q&A from Wikipedia/documents
+  ├── generate_conversation.py               # Template: Multi-turn conversations
+  ├── generate_adversarial.py                # Template: Safety evaluation datasets
+  ├── generate_jailbreak_attacks.py          # Template: UPIA/XPIA attack simulation
+  ├── generate_with_custom_prompty.py        # Template: Custom simulator behavior
+  ├── utils.py                               # Template: Utility functions
   └── custom_simulator_prompty/
-      ├── user_override.prompty              # Custom user behavior
-      └── query_generator.prompty            # Custom Q&A generation
+      ├── user_override.prompty              # Template: Custom user behavior
+      └── query_generator.prompty            # Template: Custom Q&A generation
 ```
+
+**Do NOT reference these files directly.** Copy and adapt them for your project structure.
 
 ## Quick Start
 
 ### Generate Q&A from Text
-```bash
-cd examples
-python generate_qa_from_text.py
-```
-Outputs: `training_data.jsonl` in chat completion format
-- Extracts text from Wikipedia
-- Generates Q&A with multiple personas
-- Ready for SFT fine-tuning
+1. Copy `examples/generate_qa_from_text.py` and `examples/utils.py` to your project
+2. Run: `python generate_qa_from_text.py`
+3. Outputs: `training_data.jsonl` in chat completion format
+   - Extracts text from Wikipedia
+   - Generates Q&A with multiple personas
+   - Ready for SFT fine-tuning
 
 ### Generate Multi-Turn Conversations
-```bash
-cd examples
-python generate_conversation.py
-```
-Outputs: `conversation_data.jsonl`
-- Predefined conversation starters
-- Multi-turn dialogue (up to 5 turns)
-- User simulator with configurable behavior
+1. Copy `examples/generate_conversation.py` and `examples/utils.py` to your project
+2. Run: `python generate_conversation.py`
+3. Outputs: `conversation_data.jsonl`
+   - Predefined conversation starters
+   - Multi-turn dialogue (up to 5 turns)
+   - User simulator with configurable behavior
 
 ### Generate Safety Evaluation Data
-```bash
-cd examples
-python generate_adversarial.py
-```
-Outputs: `adversarial_qa.jsonl`, `adversarial_conversation.jsonl`, `adversarial_summarization.jsonl`
-- Tests responses to harmful/unsafe prompts
-- Covers: hate, sexual, violence, self-harm
-- Designed for safety evaluator benchmarking
+1. Copy `examples/generate_adversarial.py` and `examples/utils.py` to your project
+2. Run: `python generate_adversarial.py`
+3. Outputs: `adversarial_qa.jsonl`, `adversarial_conversation.jsonl`, `adversarial_summarization.jsonl`
+   - Tests responses to harmful/unsafe prompts
+   - Covers: hate, sexual, violence, self-harm
+   - Designed for safety evaluator benchmarking
 
 ### Generate Jailbreak Attacks
-```bash
-cd examples
-python generate_jailbreak_attacks.py
-```
-Outputs: `direct_attack_baseline.jsonl`, `direct_attack_jailbreak.jsonl`, `indirect_attack.jsonl`
-- **UPIA**: Direct user prompt injection
-- **XPIA**: Context/document injection
-- Baseline + attack variants for comparison
+1. Copy `examples/generate_jailbreak_attacks.py` and `examples/utils.py` to your project
+2. Run: `python generate_jailbreak_attacks.py`
+3. Outputs: `direct_attack_baseline.jsonl`, `direct_attack_jailbreak.jsonl`, `indirect_attack.jsonl`
+   - **UPIA**: Direct user prompt injection
+   - **XPIA**: Context/document injection
+   - Baseline + attack variants for comparison
 
 ### Custom Simulator Behavior
-```bash
-cd examples
-python generate_with_custom_prompty.py
-```
-Outputs: `custom_prompty_data.jsonl`
-- Override user mood/persona (e.g., "professional")
-- Control response diversity (temperature, top_p)
-- Custom query-response generation logic
+1. Copy `examples/generate_with_custom_prompty.py`, `examples/utils.py`, and `examples/custom_simulator_prompty/` to your project
+2. Run: `python generate_with_custom_prompty.py`
+3. Outputs: `custom_prompty_data.jsonl`
+   - Override user mood/persona (e.g., "professional")
+   - Control response diversity (temperature, top_p)
+   - Custom query-response generation logic
 
 ## Data Formats
 

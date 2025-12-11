@@ -20,31 +20,36 @@ This skill provides **direct training on Azure ML managed compute** using TRL tr
 - You prefer running on your own compute resources (no vendor lock-in)
 - You want to experiment with advanced training techniques (LoRA, gradient checkpointing, etc.)
 
-## Files
-- `sample/submit_sft_job.py` — Submits SFT training job to Azure ML compute
-- `sample/src/train_sft.py` — SFT trainer entry point (TRL SFTTrainer)
-- `sample/submit_dpo_job.py` — Submits DPO training job to Azure ML compute
-- `sample/src/train_dpo.py` — DPO trainer entry point (TRL DPOTrainer)
-- `sample/submit_rl_job.py` — Submits RL/PPO training job to Azure ML compute
-- `sample/src/train_rl.py` — RL trainer entry point (TRL PPOTrainer)
-- `sample/environment/conda.yml` — Runtime dependencies (transformers, trl, datasets, torch)
+## Template Files
+These are **templates** in `examples/` directory. Generate new files in your project based on these templates:
+- `examples/submit_sft_job.py` — Template for submitting SFT training jobs
+- `examples/src/train_sft.py` — Template for SFT trainer entry point (TRL SFTTrainer)
+- `examples/submit_dpo_job.py` — Template for DPO training job submission
+- `examples/src/train_dpo.py` — Template for DPO trainer entry point (TRL DPOTrainer)
+- `examples/submit_rl_job.py` — Template for RL/PPO training job submission
+- `examples/src/train_rl.py` — Template for RL trainer entry point (TRL PPOTrainer)
+- `examples/environment/conda.yml` — Template for runtime dependencies (transformers, trl, datasets, torch)
+
+**Do NOT reference these files directly.** Copy and adapt them for your project structure.
 
 ## Quick start
 1. az login then set AZURE_SUBSCRIPTION_ID, AZURE_RESOURCE_GROUP, AZUREML_WORKSPACE_NAME.
-2. Upload a JSONL dataset to a workspace datastore (workspaceblobstore or your own). Dataset must follow Azure chat-completion format: `{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}`.
-3. Ensure a compute target exists (GPU recommended, for example gpu-cluster).
-4. Submit: `python sample/submit_sft_job.py --compute <compute-name> --data-path <azureml://.../dataset.jsonl> --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1`.
-5. Monitor in Azure ML studio; trained weights land in the job output folder.
+2. **Create training files in your project:**
+   - Copy `examples/submit_sft_job.py` to your project as `submit_training.py`
+   - Copy `examples/src/train_sft.py` to your project as `src/train_sft.py`
+   - Copy `examples/environment/conda.yml` to your project as `environment/conda.yml`
+3. Upload a JSONL dataset to a workspace datastore (workspaceblobstore or your own). **SFT dataset format:** Each line must be valid JSON with a `"messages"` field containing chat-completion format: `{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}`. The trainer uses this field directly.
+4. Ensure a compute target exists (GPU recommended, for example gpu-cluster).
+5. Submit: `python submit_training.py --compute <compute-name> --data-path <azureml://.../dataset.jsonl> --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1`.
+6. Monitor in Azure ML studio; trained weights land in the job output folder.
 
 ### DPO quick start
-- Dataset format (JSONL): `{"input": {"messages": [...]}, "preferred_output": [...], "non_preferred_output": [...]}`
-- `input.messages` is the conversation (system/user turns).
-- `preferred_output` and `non_preferred_output` are arrays of assistant completions.
+- **Dataset format (JSONL):** Each line must contain `"chosen"` and `"rejected"` fields with chat-completion format messages: `{"chosen": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}], "rejected": [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]}`.
 - Hyperparameters: `beta` (default 0.1) controls KL penalty, `l2_multiplier` (default 0.1) for regularization.
 - Submit: `python sample/submit_dpo_job.py --compute <compute-name> --data-path <azureml://.../dpo.jsonl> --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1 --beta 0.1 --l2_multiplier 0.1`.
 
 ### RL (PPO-style) quick start
-- Dataset format: JSONL with `prompt` field and optional `reward` (float) column for explicit reward signals. If reward missing, length-based reward shaping is used as fallback.
+- **Dataset format (JSONL):** Each line must contain a `"prompt"` field (string) and optional `"reward"` (float) for explicit reward signals. If reward is missing, length-based reward shaping is used as fallback: `{"prompt": "user message", "reward": 0.5}`.
 - Submit: `python sample/submit_rl_job.py --compute <compute-name> --data-path <azureml://.../rl.jsonl> --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1`.
 
 ## Notes

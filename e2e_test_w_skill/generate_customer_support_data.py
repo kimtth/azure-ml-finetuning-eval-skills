@@ -1,229 +1,142 @@
 """
-Generate synthetic customer support Q&A dataset for LLM fine-tuning.
-
-This script:
-1. Uses Azure AI Foundry Simulator to generate customer support conversations
-2. Creates training data in JSONL format (80% for fine-tuning)
-3. Creates test data in JSONL format (20% for evaluation)
+Generate synthetic customer-support conversations with Azure AI Foundry Simulator.
+Outputs: train.jsonl and test.jsonl with chat-completion `messages` plus evaluation fields.
+Required env: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_API_VERSION.
+Authentication: DefaultAzureCredential (supports Azure CLI login, managed identity, etc.).
 """
-
-import os
-import sys
 import asyncio
 import json
+import os
+import random
 from pathlib import Path
-
-# Add examples directory to path for utils
-sys.path.append(str(Path(__file__).parent.parent / "skills" / "azure-ml-dataset-creator" / "examples"))
-from utils import get_azure_openai_token_provider
+from typing import Any, Dict, List
 
 from azure.ai.evaluation.simulator import Simulator
+from azure.identity import DefaultAzureCredential
 from openai import AzureOpenAI
 
-
-# Customer support knowledge base
-CUSTOMER_SUPPORT_TEXT = """
-Azure Machine Learning Customer Support Guide:
-
-Account and Billing:
-- You can manage your subscription in the Azure portal under Cost Management + Billing
-- Azure ML charges for compute, storage, and data transfer
-- You can set up cost alerts to monitor spending
-- Free tier includes limited compute hours for experimentation
-
-Compute Clusters:
-- Compute clusters can be CPU or GPU-based
-- Minimum node count can be 0 for auto-scaling to save costs
-- Maximum node count depends on your subscription quota
-- Idle time before scale down is configurable (default 120 seconds)
-- Spot instances available for cost savings on non-critical workloads
-
-Training Jobs:
-- Training jobs run on compute targets you specify
-- Jobs can use environments from Docker images or conda files
-- You can track experiments and compare metrics across runs
-- Distributed training is supported for large models
-- Failed jobs can be restarted from checkpoints
-
-Model Deployment:
-- Deploy models to managed online endpoints for real-time inference
-- Batch endpoints are available for large-scale scoring
-- Blue-green deployment pattern supported for safe updates
-- Auto-scaling based on request load
-- Model monitoring tracks performance and data drift
-
-Troubleshooting:
-- Check job logs in the Outputs + logs tab
-- Verify compute cluster is running before submitting jobs
-- Ensure data paths use azureml:// URIs for datastores
-- Check IAM permissions if you get access denied errors
-- Monitor quota limits in the Azure portal
-
-Common Error Messages:
-- "Compute target not found" - Verify compute cluster name and region
-- "Dataset not found" - Ensure dataset is registered and path is correct
-- "Out of memory" - Increase VM size or reduce batch size
-- "Authentication failed" - Run az login and check credentials
-- "Quota exceeded" - Request quota increase in Azure portal
-"""
+DATA_DIR = Path(__file__).resolve().parent
 
 
-async def customer_support_callback(messages, stream=False, session_state=None, context=None):
-    """
-    Callback function that simulates a customer support assistant.
-    """
-    query = messages["messages"][-1]["content"]
-    
-    model_config = {
-        "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
-        "azure_deployment": os.environ["AZURE_OPENAI_DEPLOYMENT"],
-        "api_version": os.environ["AZURE_OPENAI_API_VERSION"],
-    }
-    
+def _env(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f"Missing environment variable: {name}")
+    return value
+
+
+MODEL_CONFIG = {
+    "azure_endpoint": _env("AZURE_OPENAI_ENDPOINT"),
+    "azure_deployment": _env("AZURE_OPENAI_DEPLOYMENT"),
+    "api_version": _env("AZURE_OPENAI_API_VERSION"),
+}
+
+
+def _token_provider():
+    credential = DefaultAzureCredential()
+
+    def provider() -> str:
+        token = credential.get_token("https://cognitiveservices.azure.com/.default")
+        return token.token
+
+    return provider
+
+
+def _conversation_to_dict(conversation: Any) -> Dict[str, Any]:
+    if hasattr(conversation, "to_json"):
+        return json.loads(conversation.to_json())
+    if hasattr(conversation, "to_json_lines"):
+        return json.loads(conversation.to_json_lines())
+    raise ValueError("Unexpected simulator conversation payload")
+
+
+async def support_target(messages: Dict[str, Any], stream: bool = False, session_state=None, context=None):
     client = AzureOpenAI(
-        azure_endpoint=model_config["azure_endpoint"],
-        api_version=model_config["api_version"],
-        azure_ad_token_provider=get_azure_openai_token_provider(),
+        azure_endpoint=MODEL_CONFIG["azure_endpoint"],
+        api_version=MODEL_CONFIG["api_version"],
+        azure_ad_token_provider=_token_provider(),
     )
-    
-    system_prompt = """You are a helpful Azure Machine Learning customer support assistant.
-    Answer questions accurately based on the documentation provided.
-    Be concise, professional, and provide actionable solutions."""
-    
-    response = client.chat.completions.create(
-        model=model_config["azure_deployment"],
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Context: {CUSTOMER_SUPPORT_TEXT}\n\nQuestion: {query}"}
-        ],
-        max_tokens=500,
-        temperature=0.7,
+    prompt_messages: List[Dict[str, str]] = [
+        {
+            "role": "system",
+            "content": (
+                "You are Contoso's concise customer support agent. Keep answers actionable and under 80 words. "
+                "If the request is ambiguous, ask one clarifying question."
+            ),
+        },
+        *messages["messages"],
+    ]
+    completion = client.chat.completions.create(
+        model=MODEL_CONFIG["azure_deployment"],
+        messages=prompt_messages,
+        max_tokens=256,
+        temperature=0.6,
     ).choices[0].message.content
-    
-    messages["messages"].append({
-        "content": response,
-        "role": "assistant",
-        "context": {"citations": None},
-    })
-    
-    return {
-        "messages": messages["messages"],
-        "stream": stream,
-        "session_state": session_state,
-        "context": context
-    }
+    messages["messages"].append({"role": "assistant", "content": completion})
+    return {"messages": messages["messages"], "stream": stream, "session_state": session_state, "context": context}
 
 
-async def main():
-    """Generate customer support training and test datasets."""
-    
-    # Check required environment variables
-    required_vars = [
-        "AZURE_OPENAI_ENDPOINT",
-        "AZURE_OPENAI_DEPLOYMENT",
-        "AZURE_OPENAI_API_VERSION"
+async def main() -> None:
+    conversation_turns = [
+        ["I forgot my password and the email link expired", "How can I log back in?"],
+        ["My order is late", "Can you track it?", "Can I change the delivery address?"],
+        ["I was charged twice", "How do I get a refund?"],
+        ["The promo code did not apply", "Can you adjust my bill?"],
+        ["The app keeps crashing", "I already reinstalled", "What else can I try?"],
+        ["How do I cancel my subscription?", "Will I lose my data?"],
+        ["Does your product work internationally?", "What are the shipping fees?"],
+        ["I need to update my payment method", "Is Apple Pay supported?"],
     ]
-    
-    missing = [var for var in required_vars if not os.environ.get(var)]
-    if missing:
-        print(f"Error: Missing required environment variables: {', '.join(missing)}")
-        print("\nRequired environment variables:")
-        print("  AZURE_OPENAI_ENDPOINT - Your Azure OpenAI endpoint URL")
-        print("  AZURE_OPENAI_DEPLOYMENT - Your deployment name (e.g., gpt-5-mini)")
-        print("  AZURE_OPENAI_API_VERSION - API version (e.g., 2024-08-01-preview)")
-        return
-    
-    model_config = {
-        "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
-        "azure_deployment": os.environ["AZURE_OPENAI_DEPLOYMENT"],
-        "api_version": os.environ["AZURE_OPENAI_API_VERSION"],
-    }
-    
-    print("Initializing Azure AI Foundry Simulator...")
-    simulator = Simulator(model_config=model_config)
-    
-    # Define customer personas for diverse queries
-    tasks = [
-        "I am a new user trying to understand Azure ML basics",
-        "I am a data scientist experiencing technical issues",
-        "I am a developer asking about deployment options",
-        "I am an administrator managing costs and quotas",
-        "I am troubleshooting a failed training job",
-        "I am asking about compute cluster configuration",
-        "I am inquiring about model deployment best practices",
-        "I am confused about billing and pricing",
-    ]
-    
-    print(f"Generating {len(tasks) * 10} customer support Q&A pairs...")
-    print("This may take a few minutes...\n")
-    
+
+    simulator = Simulator(model_config=MODEL_CONFIG)
     outputs = await simulator(
-        target=customer_support_callback,
-        text=CUSTOMER_SUPPORT_TEXT,
-        num_queries=80,  # 80 total queries (10 per task)
-        max_conversation_turns=1,
-        tasks=tasks,
+        target=support_target,
+        conversation_turns=conversation_turns,
+        max_conversation_turns=3,
+        user_simulator_prompty_kwargs={"temperature": 0.5, "top_p": 0.9},
     )
-    
-    print(f"Generated {len(outputs)} Q&A pairs")
-    
-    # Split into training (80%) and test (20%) sets
-    split_index = int(len(outputs) * 0.8)
-    train_outputs = outputs[:split_index]
-    test_outputs = outputs[split_index:]
-    
-    # Save training data in chat completion format for SFT
-    os.makedirs("e2e_test", exist_ok=True)
-    train_file = "e2e_test/customer_support_train.jsonl"
-    
-    with open(train_file, "w", encoding="utf-8") as f:
-        for output in train_outputs:
-            # Convert to chat completion format
-            messages = []
-            messages.append({
-                "role": "system",
-                "content": "You are a helpful Azure Machine Learning customer support assistant."
-            })
-            for msg in output["messages"]:
-                messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
-            
-            f.write(json.dumps({"messages": messages}) + "\n")
-    
-    print(f"✓ Training data saved: {train_file} ({len(train_outputs)} samples)")
-    
-    # Save test data in evaluation format
-    test_file = "e2e_test/customer_support_test.jsonl"
-    
-    with open(test_file, "w", encoding="utf-8") as f:
-        for output in test_outputs:
-            # Extract query and response
-            query = None
-            response = None
-            for msg in output["messages"]:
-                if msg["role"] == "user":
-                    query = msg["content"]
-                elif msg["role"] == "assistant":
-                    response = msg["content"]
-            
-            if query and response:
-                f.write(json.dumps({
-                    "query": query,
-                    "response": response,
-                    "context": CUSTOMER_SUPPORT_TEXT[:1000],  # Truncated context
-                    "ground_truth": response  # Use generated response as ground truth
-                }) + "\n")
-    
-    print(f"✓ Test data saved: {test_file} ({len(test_outputs)} samples)")
-    print("\n" + "="*70)
-    print("Dataset generation complete!")
-    print("="*70)
-    print("\nNext steps:")
-    print(f"1. Upload {train_file} to Azure ML datastore")
-    print("2. Use azure-ml-llm-trainer skill to fine-tune a model")
-    print(f"3. Use azure-ml-model-evaluation skill to evaluate with {test_file}")
+
+    records: List[Dict[str, Any]] = []
+    for conversation in outputs:
+        conv_dict = _conversation_to_dict(conversation)
+        messages = conv_dict.get("messages") or []
+        if not messages:
+            continue
+        last_user = next((m for m in reversed(messages) if m.get("role") == "user"), None)
+        last_assistant = next((m for m in reversed(messages) if m.get("role") == "assistant"), None)
+        if not last_user or not last_assistant:
+            continue
+        system_message = {
+            "role": "system",
+            "content": (
+                "You are Contoso's concise customer support agent. Keep answers actionable and under 80 words. "
+                "If the request is ambiguous, ask one clarifying question."
+            ),
+        }
+        records.append(
+            {
+                "messages": [system_message, *messages],
+                "query": last_user["content"],
+                "response": last_assistant["content"],
+                "ground_truth": last_assistant["content"],
+                "context": "Customer support chat for Contoso retail platform.",
+            }
+        )
+
+    if not records:
+        raise RuntimeError("No simulator conversations were generated")
+
+    random.shuffle(records)
+    split = max(1, int(len(records) * 0.8))
+    train, test = records[:split], records[split:]
+    with open(DATA_DIR / "train.jsonl", "w", encoding="utf-8") as f:
+        for row in train:
+            f.write(json.dumps(row) + "\n")
+    with open(DATA_DIR / "test.jsonl", "w", encoding="utf-8") as f:
+        for row in test:
+            f.write(json.dumps(row) + "\n")
+
+    print(f"Generated {len(train)} train and {len(test)} test examples → {DATA_DIR}")
 
 
 if __name__ == "__main__":

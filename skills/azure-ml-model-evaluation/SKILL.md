@@ -36,30 +36,31 @@ Evaluate generative AI applications using Azure AI Evaluation SDK with built-in 
 ### Safety Evaluators
 - Project in East US 2, France Central, UK South, or Sweden Central
 
-## Files
+## Template Files
+These are **templates** in `examples/` directory. Copy and adapt them for your project:
 
 ```
 examples/
-  ├── local_evaluation.py                    # Evaluate with built-in metrics
-  ├── cloud_evaluation.py                    # Cloud-scale evaluation job
-  └── utils.py                               # Helper functions
+  ├── local_evaluation.py                    # Template: Evaluate with built-in metrics
+  ├── cloud_evaluation.py                    # Template: Cloud-scale evaluation job
+  └── utils.py                               # Template: Helper functions
 ```
+
+**Do NOT reference these files directly.** Copy and adapt them for your project structure.
 
 ## Quick Start
 
 ### Local Evaluation
-```bash
-cd examples
-python local_evaluation.py
-```
-Runs 5 evaluators locally (relevance, groundedness, coherence, fluency, F1 score) on `test_data.jsonl`. Output: `evaluation_results.json`
+1. Copy `examples/local_evaluation.py` and `examples/utils.py` to your project
+2. Run: `python local_evaluation.py`
+3. Runs 5 evaluators locally (relevance, groundedness, coherence, fluency, F1 score) on `test_data.jsonl`
+4. Output: `evaluation_results.json`
 
 ### Cloud Evaluation
-```bash
-cd examples
-python cloud_evaluation.py
-```
-Submits evaluation job to Azure; monitor via [Azure AI Foundry](https://ai.azure.com) → Evaluation runs. Includes relevance, groundedness, violence, coherence.
+1. Copy `examples/cloud_evaluation.py` and `examples/utils.py` to your project
+2. Run: `python cloud_evaluation.py`
+3. Submits evaluation job to Azure; monitor via [Azure AI Foundry](https://ai.azure.com) → Evaluation runs
+4. Includes relevance, groundedness, violence, coherence evaluators
 
 ## Data Formats
 
