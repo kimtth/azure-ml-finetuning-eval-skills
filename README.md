@@ -26,6 +26,8 @@ Evaluate generative AI applications locally or in the cloud with built-in qualit
 
 ## Quick Start
 
+1. Setup the environment 
+
 ```bash
 # Install required packages
 pip install azure-ai-evaluation azure-ai-projects azure-identity
@@ -43,25 +45,9 @@ export AZURE_OPENAI_API_VERSION="2024-08-01-preview"
 az login
 ```
 
-1. **Generate Training Data** (azure-ml-dataset-creator)
-   ```python
-   from azure.ai.evaluation.simulator import Simulator
-   outputs = await simulator(target=callback, text=docs, num_queries=100)
-   ```
+2. Specify the skills folder and AGENTS.md in GitHub Copilot Chat in VS code to provide context for Copilot-managed coding models.
 
-2. **Fine-Tune Model** (azure-ml-llm-trainer)
-   ```bash
-   python skills/azure-ml-llm-trainer/sample/submit_sft_job.py \
-     --compute gpu-cluster \
-     --data-path azureml://datastores/workspaceblobstore/paths/data.jsonl \
-     --model-name azureml://registries/azureml/models/Phi-3-mini-4k-instruct/versions/1
-   ```
-
-3. **Evaluate Results** (azure-ml-model-evaluation)
-   ```python
-   from azure.ai.evaluation import evaluate
-   result = evaluate(data="test.jsonl", evaluators={"groundedness": eval})
-   ```
+3. Send your request to fine-tune a model using Azure Machine Learning.
 
 ## Key Features
 
